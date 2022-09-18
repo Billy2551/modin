@@ -48,6 +48,32 @@ if TYPE_CHECKING:
     from .dataframe import DataFrame
 
 
+def decorate_all_functions(function_decorator):
+    def decorator(cls):
+        exclude_names = ["_init", "__getattr__", "__getattribute__", "__setattr__"]
+        for name, obj in vars(cls).items():
+            if name not in exclude_names and callable(obj):
+                setattr(cls, name, function_decorator(obj, name))
+        return cls
+
+    return decorator
+
+
+from functools import wraps
+
+
+def small_query_compiler(func, name):
+    @wraps(func)
+    def wrapper(self, *args, **kw):
+        if isinstance(self._query_compiler, SmallQueryCompiler):
+            result = self._query_compiler.default_to_pandas(name, *args, **kw)
+            return result
+        return func(self, *args, **kw)
+
+    return wrapper
+
+
+@decorate_all_functions(small_query_compiler)
 @_inherit_docstrings(
     pandas.Series, excluded=[pandas.Series.__init__], apilink="pandas.Series"
 )

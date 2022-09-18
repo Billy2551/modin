@@ -23,6 +23,7 @@ from pandas.core.indexes.api import ensure_index_from_sequences
 from typing import List, Hashable
 
 from modin.core.storage_formats.base.query_compiler import BaseQueryCompiler
+from modin.error_message import ErrorMessage
 from modin.utils import MODIN_UNNAMED_SERIES_LABEL
 from modin.utils import (
     _inherit_docstrings,
@@ -91,12 +92,19 @@ class SmallQueryCompiler(BaseQueryCompiler):
 
     def __init__(self, modin_frame):
         self._modin_frame = modin_frame
-        print("THERES SOMETHING HERE")
 
     def default_to_pandas(self, pandas_op, *args, **kwargs):
         # type(self) might not work
         # SmallQueryCompiler and PandasQueryCompiler are not the same
-        args = (a.to_pandas() if isinstance(a, type(self)) else a for a in args)
+        pandas_op = getattr(type(self._modin_frame), str(pandas_op))
+        op_name = getattr(pandas_op, "__name__", str(pandas_op))
+        ErrorMessage.default_to_pandas(op_name)
+
+        args = (
+            # Could also use try_cast_to_pandas from utils here
+            a._query_compiler.to_pandas() if hasattr(a, "_query_compiler") else a
+            for a in args
+        )
         kwargs = {
             k: v.to_pandas if isinstance(v, type(self)) else v
             for k, v in kwargs.items()
@@ -110,7 +118,7 @@ class SmallQueryCompiler(BaseQueryCompiler):
 
         return result
         # if isinstance(result, pandas.DataFrame):
-        #     return self.from_pandas(result, type(self._modin_frame))
+        #     return self.from_pandas(result)
         # else:
         #     return result
 
@@ -135,8 +143,8 @@ class SmallQueryCompiler(BaseQueryCompiler):
         return self._modin_frame
 
     @classmethod
-    def from_pandas(cls, df, data_cls):
-        return cls(data_cls.from_pandas(df))
+    def from_pandas(cls, df):
+        return cls(df)
 
     @classmethod
     def from_arrow(cls, at, data_cls):
@@ -167,10 +175,6 @@ class SmallQueryCompiler(BaseQueryCompiler):
     @property
     def dtypes(self):
         return self._modin_frame.dtypes
-
-    # def __getattribute__(self, item):
-    #     print("Getting attribute:", item)
-    #     return super()._modin_frame.__getattribute__(item)
 
     # END Index, columns, and dtypes objects
 

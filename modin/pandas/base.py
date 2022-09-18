@@ -50,6 +50,7 @@ from modin.pandas.utils import is_scalar
 from modin.config import IsExperimental
 from modin.logging import disable_logging
 from modin._compat.pandas_api.classes import BasePandasDatasetCompat
+from modin.core.storage_formats.pandas.small_query_compiler import SmallQueryCompiler
 
 # Similar to pandas, sentinel value to use as kwarg in place of None when None has
 # special meaning and needs to be distinguished from a user explicitly passing None.
@@ -195,6 +196,8 @@ class BasePandasDataset(BasePandasDatasetCompat):
             indexer = row_indexer, col_indexer
         else:
             indexer = row_indexer
+        if isinstance(self._query_compiler, SmallQueryCompiler):
+            return self._query_compiler.to_pandas().iloc[indexer]
         return self.iloc[indexer]._query_compiler.to_pandas()
 
     def _update_inplace(self, new_query_compiler):
