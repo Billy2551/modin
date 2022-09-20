@@ -8,13 +8,16 @@ from .series import Series
 
 def decorate_all_functions(function_decorator):
     def decorator(cls):
-        exclude_names = ["__init__", "_default_to_pandas", "_to_pandas"]
+        exclude_names = [
+            "__init__",
+            # "__getattr__",
+            "_default_to_pandas",
+            "_to_pandas",
+            # "_dataframe",
+        ]
         for name, obj in vars(cls).items():
             if name not in exclude_names and callable(obj):
-                print(name, "added")
                 setattr(cls, name, function_decorator(obj, name))
-            else:
-                print(name, "not added")
         return cls
 
     return decorator
@@ -32,7 +35,7 @@ def empty_dataframe_default(func, name):
 
 
 @decorate_all_functions(empty_dataframe_default)
-class EmptyDataFrame(DataFrame):
+class EmptyDataFrame:
     """
     Special Modin class to handle empty dataframe operations.
     Inherit from DataFrame class (__repr__ method would be the same).
@@ -56,17 +59,33 @@ class EmptyDataFrame(DataFrame):
         else:
             self._dataframe = query_compiler.to_pandas()
 
-    def default_to_pandas(self, pandas_op, *args, **kwargs):
+    def __repr__(self):
+        pass
+
+    def __str__(self):
+        pass
+
+    def _default_to_pandas(self, pandas_op, *args, **kwargs):
         args = try_cast_to_pandas(args)
         kwargs = try_cast_to_pandas(kwargs)
+        print(args, kwargs)
 
-        result = pandas_op(self._dataframe, *args, **kwargs)
-        if isinstance(result, pandas.Series) and not result.empty:
-            return Series(result)
-        if isinstance(result, pandas.DataFrame) and not result.empty:
-            return DataFrame(result)
+        func = getattr(type(self._dataframe), pandas_op.__name__)
+        result = func(self._dataframe, *args, **kwargs)
+        # if isinstance(result, pandas.Series) and not result.empty:
+        #     return Series(result)
+        # if isinstance(result, pandas.DataFrame) and not result.empty:
+        #     return DataFrame(result)
 
         return result
 
     def _to_pandas(self):
         return self._dataframe
+
+    # def __getattr__(self, key):
+    #     if key == "_dataframe":
+    #         return object.__getattribute__("_dataframe")
+    #     return object.__getattribute__(self, key)
+
+    def abs(self, *args, **kwargs):
+        return
