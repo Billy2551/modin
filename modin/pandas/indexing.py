@@ -765,22 +765,18 @@ class _LocIndexer(_LocationIndexerBase):
             )
             return
         row_loc, col_loc, _ = self._parse_row_and_column_locators(key)
-        if isinstance(row_loc, list) and len(row_loc) == 1:
-            if row_loc[0] not in self.qc.index:
-                index = self.qc.index.insert(len(self.qc.index), row_loc[0])
-                self.qc = self.qc.reindex(labels=index, axis=0)
-                self.df._update_inplace(new_query_compiler=self.qc)
-
-        if (
-            isinstance(col_loc, list)
-            and len(col_loc) == 1
-            and col_loc[0] not in self.qc.columns
-        ):
+        if isinstance(row_loc, int) and row_loc not in self.qc.index:
+            # if row_loc not in self.qc.index:
+            index = self.qc.index.insert(len(self.qc.index), row_loc)
+            self.qc = self.qc.reindex(labels=index, axis=0)
+            self.df._update_inplace(new_query_compiler=self.qc)
+        if isinstance(col_loc, int) and col_loc not in self.qc.columns:
             new_col = pandas.Series(index=self.df.index)
             new_col[row_loc] = item
-            self.df.insert(loc=len(self.df.columns), column=col_loc[0], value=new_col)
+            self.df.insert(loc=len(self.df.columns), column=col_loc, value=new_col)
             self.qc = self.df._query_compiler
         else:
+            # print(item)
             row_lookup, col_lookup = self._compute_lookup(row_loc, col_loc)
             self._setitem_positional(
                 row_lookup,
@@ -824,7 +820,7 @@ class _LocIndexer(_LocationIndexerBase):
             )
         return nan_labels
 
-    def _compute_lookup(self, row_loc, col_loc):
+    def _compute_lookup(self, row_loc, col_loc, set_index=False):
         """
         Compute index and column labels from index and column locators.
 
@@ -898,7 +894,7 @@ class _LocIndexer(_LocationIndexerBase):
                 # `Index.get_indexer_for` sets -1 value for missing labels, we have to verify whether
                 # there are any -1 in the received indexer to raise a KeyError here.
                 missing_mask = axis_lookup < 0
-                if missing_mask.any():
+                if missing_mask.any() and not set_index:
                     missing_labels = (
                         # Converting `axis_loc` to maskable `np.array` to not fail
                         # on masking non-maskable list-like
