@@ -2413,7 +2413,10 @@ class DataFrame(DataFrameCompat, BasePandasDataset):
         # - `_query_compiler`, which Modin initializes before it appears in
         #   __dict__
         # - `_siblings`, which Modin initializes before it appears in __dict__
-        if key in ["_query_compiler", "_siblings"] or key in self.__dict__:
+        if (
+            key in ["_query_compiler", "_siblings", "_dataframe"]
+            or key in self.__dict__
+        ):
             pass
         elif key in self and key not in dir(self):
             self.__setitem__(key, value)
