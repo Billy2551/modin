@@ -2117,3 +2117,14 @@ def test__getitem_bool_single_row_dataframe():
     # This test case comes from
     # https://github.com/modin-project/modin/issues/4845
     eval_general(pd, pandas, lambda lib: lib.DataFrame([1])[lib.Series([True])])
+
+
+def test_setitem_index_out_of_range():
+    # This test case comes from
+    # https://github.com/modin-project/modin/issues/3764
+    def set_new_row(lib):
+        df = lib.DataFrame([[1, 2], [3, 4]])
+        df.loc[2] = df.loc[1]
+        return df
+
+    eval_general(pd, pandas, set_new_row)

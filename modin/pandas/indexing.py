@@ -766,9 +766,8 @@ class _LocIndexer(_LocationIndexerBase):
             return
         row_loc, col_loc, _ = self._parse_row_and_column_locators(key)
         if isinstance(row_loc, int) and row_loc not in self.qc.index:
-            # if row_loc not in self.qc.index:
             index = self.qc.index.insert(len(self.qc.index), row_loc)
-            self.qc = self.qc.reindex(labels=index, axis=0)
+            self.qc = self.qc.reindex(labels=index, axis=0, fill_value=0)
             self.df._update_inplace(new_query_compiler=self.qc)
         if isinstance(col_loc, int) and col_loc not in self.qc.columns:
             new_col = pandas.Series(index=self.df.index)
