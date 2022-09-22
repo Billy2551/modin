@@ -372,6 +372,62 @@ def test_loc(data):
     key2 = modin_df.columns[-2]
     df_equals(modin_df.loc[:, key1:key2], pandas_df.loc[:, key1:key2])
 
+    # From issue #3764
+    pandas_test_df = pandas.DataFrame([[1, 2, 3], [4, 5, 6]])
+    modin_test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+
+    pandas_test_df.loc[2] = pandas_test_df.loc[1]
+    modin_test_df.loc[2] = modin_test_df.loc[1]
+    df_equals(modin_test_df, pandas_test_df)
+
+    pandas_test_df.loc[6] = pandas_test_df.loc[1]
+    modin_test_df.loc[6] = modin_test_df.loc[1]
+    df_equals(modin_test_df, pandas_test_df)
+
+    pandas_test_df.loc[lambda df: 70] = pandas_test_df.loc[1]
+    modin_test_df.loc[lambda df: 70] = modin_test_df.loc[1]
+    df_equals(modin_test_df, pandas_test_df)
+
+    pandas_test_df.loc[90] = pandas_test_df.loc[70]
+    modin_test_df.loc[90] = modin_test_df.loc[70]
+    df_equals(modin_test_df, pandas_test_df)
+
+    # Single number column, changes out of bounds
+    # Doesn't work, errors
+    pandas_test_df.loc[:, 10] = 1
+    modin_test_df.loc[:, 10] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
+    # Slice number column, doesn't do anything
+    # Doesn't work, errors
+    pandas_test_df.loc[:, 100:102] = 1
+    modin_test_df.loc[:, 100:102] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
+    # Slice number column, changes only in bounds
+    # Works fine
+    pandas_test_df.loc[:, 2:6] = 1
+    modin_test_df.loc[:, 2:6] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
+    # List of number columns, changes out of bounds
+    # Doesn't work, errors
+    pandas_test_df.loc[:, [10, 11, 12]] = 1
+    modin_test_df.loc[:, [10, 11, 12]] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
+    # Single string column, changes out of bounds
+    # Doesn't work, errors
+    pandas_test_df.loc[:, "a"] = 1
+    modin_test_df.loc[:, "a"] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
+    # List of string columns, changes
+    # Doesn't work, errors
+    pandas_test_df.loc[:, ["a", "b", "c"]] = 1
+    modin_test_df.loc[:, ["a", "b", "c"]] = 1
+    df_equals(modin_test_df, pandas_test_df)
+
     # Write Item
     modin_df_copy = modin_df.copy()
     pandas_df_copy = pandas_df.copy()
